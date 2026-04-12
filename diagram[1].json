@@ -1,0 +1,122 @@
+{
+  "version": 1,
+  "author": "Monish Monish",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "board-esp32-devkit-c-v4", "id": "esp", "top": 19.2, "left": -23.96, "attrs": {} },
+    {
+      "type": "wokwi-led",
+      "id": "led1",
+      "top": 140.4,
+      "left": 407.4,
+      "attrs": { "color": "red", "flip": "1" }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "led2",
+      "top": 198,
+      "left": -313,
+      "attrs": { "color": "red", "flip": "1" }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "led3",
+      "top": -3.6,
+      "left": 397.4,
+      "attrs": { "color": "green", "flip": "1" }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "led4",
+      "top": -13.2,
+      "left": -332.2,
+      "attrs": { "color": "green", "flip": "1" }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "r1",
+      "top": 51.95,
+      "left": -297.6,
+      "attrs": { "value": "220" }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "r2",
+      "top": 272.75,
+      "left": -288,
+      "attrs": { "value": "220" }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "r3",
+      "top": 195.95,
+      "left": 326.4,
+      "attrs": { "value": "220" }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "r4",
+      "top": 42.35,
+      "left": 316.8,
+      "attrs": { "value": "220" }
+    },
+    {
+      "type": "wokwi-servo",
+      "id": "servo1",
+      "top": 362.8,
+      "left": -432,
+      "rotate": 180,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-lcd1602",
+      "id": "lcd1",
+      "top": 380.8,
+      "left": -109.6,
+      "attrs": { "pins": "i2c" }
+    },
+    { "type": "wokwi-hc-sr04", "id": "ultrasonic1", "top": -190.5, "left": -234.5, "attrs": {} },
+    { "type": "wokwi-hc-sr04", "id": "ultrasonic2", "top": -161.7, "left": 360.7, "attrs": {} },
+    { "type": "wokwi-membrane-keypad", "id": "keypad1", "top": 276.4, "left": 380, "attrs": {} }
+  ],
+  "connections": [
+    [ "esp:TX", "$serialMonitor:RX", "", [] ],
+    [ "esp:RX", "$serialMonitor:TX", "", [] ],
+    [ "esp:3V3", "ultrasonic1:VCC", "red", [ "h0" ] ],
+    [ "esp:3V3", "ultrasonic2:VCC", "red", [ "h-67.05", "v-76.8", "h518.4" ] ],
+    [ "esp:3V3", "servo1:V+", "red", [ "h-115.05", "v0", "h-57.6", "v374.4" ] ],
+    [ "esp:3V3", "lcd1:VCC", "red", [ "h-124.65", "v364.8" ] ],
+    [ "led3:A", "r4:2", "green", [ "v0" ] ],
+    [ "led1:A", "r3:2", "green", [ "v0" ] ],
+    [ "esp:GND.3", "led3:C", "black", [ "h0" ] ],
+    [ "esp:GND.3", "led1:C", "black", [ "h384", "v76.8" ] ],
+    [ "esp:GND.3", "ultrasonic2:GND", "black", [ "h0" ] ],
+    [ "esp:GND.1", "led2:A", "black", [ "h-307.05", "v9.6" ] ],
+    [ "led4:C", "r1:2", "green", [ "v0", "h67.2" ] ],
+    [ "led2:C", "r2:2", "green", [ "v0", "h57.6" ] ],
+    [ "esp:GND.1", "led4:A", "black", [ "h-307.05", "v-144", "h9.6" ] ],
+    [ "esp:GND.1", "lcd1:GND", "black", [ "h-134.25", "v259.2" ] ],
+    [ "esp:GND.1", "servo1:GND", "black", [ "h-163.05", "v288" ] ],
+    [ "esp:4", "keypad1:R1", "magenta", [ "h144", "v28.8" ] ],
+    [ "esp:5", "keypad1:R2", "magenta", [ "h153.6", "v499.2", "h259.2" ] ],
+    [ "esp:15", "keypad1:R3", "magenta", [ "v0", "h163.2", "v460.8", "h268.8" ] ],
+    [ "esp:16", "keypad1:R4", "magenta", [ "h172.8", "v518.4", "h268.8" ] ],
+    [ "esp:17", "keypad1:C1", "purple", [ "h604.8", "v537.6", "h-163.2" ] ],
+    [ "esp:18", "keypad1:C2", "purple", [ "h614.4", "v547.2", "h-163.2" ] ],
+    [ "esp:19", "keypad1:C3", "purple", [ "h624", "v537.6", "h-163.2" ] ],
+    [ "esp:23", "keypad1:C4", "purple", [ "h633.6", "v576", "h-163.2" ] ],
+    [ "esp:14", "ultrasonic2:TRIG", "green", [ "h-105.45", "v-172.8", "h566.4" ] ],
+    [ "esp:12", "ultrasonic2:ECHO", "orange", [ "v0", "h-95.85", "v-172.8", "h566.4" ] ],
+    [ "esp:2", "r3:1", "blue", [ "h0" ] ],
+    [ "esp:32", "r1:1", "blue", [ "h0" ] ],
+    [ "esp:33", "r2:1", "blue", [ "h-201.45", "v201.6", "h-67.2" ] ],
+    [ "esp:25", "r4:1", "blue", [ "v0", "h-57.45", "v-124.8", "h384" ] ],
+    [ "esp:27", "ultrasonic1:ECHO", "green", [ "h-115.05", "v-201.6", "h-9.6" ] ],
+    [ "ultrasonic1:TRIG", "esp:26", "orange", [ "v0" ] ],
+    [ "esp:GND.2", "ultrasonic1:GND", "black", [ "v0", "h28.8", "v-153.6" ] ],
+    [ "esp:13", "servo1:PWM", "yellow", [ "h-182.25", "v9.6" ] ],
+    [ "esp:21", "lcd1:SDA", "cyan", [ "h19.2", "v259.2", "h-230.4", "v76.8" ] ],
+    [ "esp:22", "lcd1:SCL", "cyan", [ "h57.6", "v297.6", "h-259.2", "v86.4" ] ]
+  ],
+  "dependencies": {}
+}

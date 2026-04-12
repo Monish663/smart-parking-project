@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Smart Parking</title>
+</head>
+<body>
+
+<h2>Book Parking Slot</h2>
+
+<button onclick="bookSlot()">Book Now</button>
+
+<p id="result"></p>
+
+<script>
+async function bookSlot() {
+
+  // Generate random 4-digit PIN
+  const pin = Math.floor(1000 + Math.random() * 9000);
+
+  const response = await fetch("http://superbowl-unlocking-venus.ngrok-free.dev/api/booking", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      device: "SP-0001",
+      pin: pin,
+      booking_id: "BK001"
+    })
+  });
+
+  const data = await response.json();
+
+  document.getElementById("result").innerText =
+    "Your PIN is: " + pin;
+}
+</script>
+
+</body>
+</html>

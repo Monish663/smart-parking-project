@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>SmartPark — Find & Book Parking</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --primary:#2563eb;--primary-dark:#1d4ed8;--primary-light:#dbeafe;
+  --green:#10b981;--green-light:#d1fae5;
+  --red:#ef4444;--red-light:#fee2e2;
+  --orange:#f59e0b;--orange-light:#fef3c7;
+  --bg:#f1f5f9;--card:#fff;--text:#0f172a;--muted:#64748b;
+  --border:#e2e8f0;--shadow:0 2px 16px rgba(0,0,0,.08);
+  --radius:14px;--radius-sm:8px;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+.hidden{display:none!important}
+.screen{min-height:100vh;display:flex;flex-direction:column}
+input,select,textarea{font-family:inherit;font-size:15px}
+button{font-family:inherit;cursor:pointer;border:none;outline:none}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:13px 24px;border-radius:12px;font-size:15px;font-weight:600;transition:all .18s;border:none;cursor:pointer}
+.btn-primary{background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff}
+.btn-primary:active{transform:scale(.97)}
+.btn-ghost{background:rgba(255,255,255,.15);color:#fff;border:1.5px solid rgba(255,255,255,.4)}
+.btn-outline{background:transparent;color:var(--primary);border:1.5px solid var(--primary)}
+.btn-green{background:var(--green);color:#fff}
+.btn-red{background:var(--red);color:#fff}
+.btn-full{width:100%}
+.btn-sm{padding:8px 16px;font-size:13px;border-radius:8px}
+
+/* ── CARDS ── */
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px}
+.card-sm{padding:14px}
+
+/* ── FORM FIELDS ── */
+.field{margin-bottom:16px}
+.field label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.field input,.field select,.field textarea{width:100%;padding:13px 16px;border:1.5px solid var(--border);border-radius:10px;font-size:15px;color:var(--text);background:#fff;transition:border .15s;outline:none}
+.field input:focus,.field select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+.field textarea{height:100px;resize:vertical}
+
+/* ── BADGE ── */
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600}
+.badge-green{background:var(--green-light);color:#065f46}
+.badge-red{background:var(--red-light);color:#991b1b}
+.badge-orange{background:var(--orange-light);color:#92400e}
+.badge-blue{background:var(--primary-light);color:#1e3a8a}
+
+/* ══════════════════════════════════════
+   LANDING PAGE
+══════════════════════════════════════ */
+#screen-landing{background:#0f172a;color:#fff}
+.hero{background:linear-gradient(135deg,#0f172a 0%,#1e3a8a 60%,#1d4ed8 100%);padding:60px 24px 50px;text-align:center;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;width:400px;height:400px;background:radial-gradient(circle,rgba(37,99,235,.3),transparent);top:-100px;right:-100px;border-radius:50%}
+.hero::after{content:'';position:absolute;width:300px;height:300px;background:radial-gradient(circle,rgba(16,185,129,.2),transparent);bottom:-80px;left:-60px;border-radius:50%}
+.logo-wrap{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:32px;position:relative;z-index:1}
+.logo-icon{width:44px;height:44px;background:linear-gradient(135deg,#2563eb,#10b981);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px}
+.logo-text{font-size:26px;font-weight:800;letter-spacing:-1px}
+.logo-text span{color:#10b981}
+.hero h1{font-size:clamp(28px,7vw,42px);font-weight:800;line-height:1.15;margin-bottom:16px;position:relative;z-index:1}
+.hero h1 em{font-style:normal;color:#34d399}
+.hero p{font-size:16px;color:#94a3b8;max-width:340px;margin:0 auto 36px;line-height:1.6;position:relative;z-index:1}
+.hero-btns{display:flex;flex-direction:column;gap:12px;max-width:320px;margin:0 auto;position:relative;z-index:1}
+.hero-btns .btn{padding:16px 24px;font-size:16px;border-radius:14px}
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:28px 20px;background:rgba(255,255,255,.04);border-top:1px solid rgba(255,255,255,.08)}
+.stat-item{text-align:center}
+.stat-num{font-size:22px;font-weight:800;color:#34d399}
+.stat-lbl{font-size:12px;color:#64748b;margin-top:2px}
+.features{padding:32px 20px;background:#0f172a}
+.features h2{font-size:20px;font-weight:700;margin-bottom:20px;color:#f1f5f9}
+.features-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.feat-card{background:rgba(255,255,255,.06);border-radius:14px;padding:18px 14px;border:1px solid rgba(255,255,255,.08)}
+.feat-icon{font-size:24px;margin-bottom:10px}
+.feat-title{font-size:14px;font-weight:700;color:#f1f5f9;margin-bottom:4px}
+.feat-desc{font-size:12px;color:#64748b;line-height:1.5}
+.how-section{padding:28px 20px 40px;background:#0f172a}
+.how-section h2{font-size:20px;font-weight:700;margin-bottom:20px;color:#f1f5f9}
+.steps-list{display:flex;flex-direction:column;gap:0}
+.step-item{display:flex;gap:14px;padding:14px 0;border-bottom:1px solid rgba(255,255,255,.06);align-items:flex-start}
+.step-num{min-width:32px;height:32px;background:linear-gradient(135deg,#2563eb,#10b981);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;margin-top:2px}
+.step-content h4{font-size:14px;font-weight:700;color:#f1f5f9;margin-bottom:3px}
+.step-content p{font-size:13px;color:#64748b;line-height:1.5}
+.choose-section{padding:28px 20px 40px;background:linear-gradient(180deg,#0f172a,#020617)}
+.choose-section h2{font-size:20px;font-weight:700;margin-bottom:20px;color:#f1f5f9;text-align:center}
+.choose-cards{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.choose-card{border-radius:16px;padding:22px 16px;text-align:center;cursor:pointer;transition:transform .18s}
+.choose-card:active{transform:scale(.97)}
+.choose-card.user-card{background:linear-gradient(135deg,#1e3a8a,#2563eb)}
+.choose-card.owner-card{background:linear-gradient(135deg,#064e3b,#065f46)}
+.choose-card .ci{font-size:32px;margin-bottom:10px}
+.choose-card h3{font-size:15px;font-weight:700;color:#fff;margin-bottom:6px}
+.choose-card p{font-size:12px;color:rgba(255,255,255,.7);line-height:1.4}
+
+/* ══════════════════════════════════════
+   AUTH SCREEN
+══════════════════════════════════════ */
+#screen-auth{background:var(--bg)}
+.auth-header{background:linear-gradient(135deg,#1e3a8a,#2563eb);padding:40px 24px 30px;color:#fff;text-align:center}
+.auth-header.owner-mode{background:linear-gradient(135deg,#064e3b,#065f46)}
+.auth-header h2{font-size:22px;font-weight:800;margin-bottom:6px}
+.auth-header p{font-size:14px;color:rgba(255,255,255,.75)}
+.auth-body{padding:24px;flex:1}
+.tab-row{display:flex;background:#e2e8f0;border-radius:10px;padding:4px;margin-bottom:24px}
+.tab-btn{flex:1;padding:10px;border-radius:7px;font-size:14px;font-weight:600;background:transparent;color:var(--muted);transition:all .15s;border:none;cursor:pointer}
+.tab-btn.active{background:#fff;color:var(--primary);box-shadow:0 1px 6px rgba(0,0,0,.1)}
+.back-btn{display:flex;align-items:center;gap:6px;font-size:14px;font-weight:600;color:rgba(255,255,255,.85);background:none;border:none;cursor:pointer;margin-bottom:8px}
+
+/* ══════════════════════════════════════
+   USER DASHBOARD
+══════════════════════════════════════ */
+#screen-user{background:var(--bg);padding-bottom:80px}
+.top-bar{background:linear-gradient(135deg,#1e3a8a,#2563eb);padding:16px 20px 20px;color:#fff}
+.top-bar-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.top-bar h3{font-size:17px;font-weight:700}
+.avatar{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;cursor:pointer}
+.search-box{display:flex;gap:8px;align-items:center;background:#fff;border-radius:12px;padding:10px 14px;box-shadow:0 2px 12px rgba(0,0,0,.15)}
+.search-box input{flex:1;border:none;font-size:15px;color:var(--text);outline:none;background:transparent}
+.search-box input::placeholder{color:#94a3b8}
+.search-box .si{color:#94a3b8;font-size:18px}
+#map{height:280px;width:100%;border-radius:0;z-index:1}
+.section-head{display:flex;justify-content:space-between;align-items:center;padding:16px 16px 8px}
+.section-head h4{font-size:16px;font-weight:700}
+.section-head a{font-size:13px;color:var(--primary);font-weight:600;text-decoration:none;background:none;border:none;cursor:pointer}
+.lots-list{display:flex;flex-direction:column;gap:10px;padding:0 16px}
+.lot-card{background:var(--card);border-radius:var(--radius);padding:16px;display:flex;gap:14px;align-items:flex-start;box-shadow:var(--shadow);cursor:pointer;transition:transform .15s,box-shadow .15s}
+.lot-card:active{transform:scale(.98)}
+.lot-icon{width:52px;height:52px;border-radius:12px;background:var(--primary-light);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
+.lot-info{flex:1;min-width:0}
+.lot-name{font-size:15px;font-weight:700;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lot-address{font-size:12px;color:var(--muted);margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lot-meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.lot-price{font-size:14px;font-weight:700;color:var(--primary)}
+.lot-avail{font-size:12px;color:var(--green);font-weight:600}
+.lot-avail.full{color:var(--red)}
+.lot-dist{font-size:12px;color:var(--muted)}
+.lot-navigate{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--primary);font-weight:600;white-space:nowrap}
+
+/* ══════════════════════════════════════
+   BOTTOM NAV
+══════════════════════════════════════ */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--border);display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom)}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 4px 8px;font-size:10px;font-weight:600;color:var(--muted);background:none;border:none;cursor:pointer;gap:4px;transition:color .15s}
+.nav-item.active{color:var(--primary)}
+.nav-icon{font-size:20px;line-height:1}
+
+/* ══════════════════════════════════════
+   MODALS
+══════════════════════════════════════ */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:flex;align-items:flex-end;padding:0}
+.modal-sheet{background:#fff;border-radius:20px 20px 0 0;width:100%;max-height:90vh;overflow-y:auto;padding:0 0 env(safe-area-inset-bottom)}
+.modal-handle{width:40px;height:4px;background:#e2e8f0;border-radius:2px;margin:12px auto 4px}
+.modal-head{padding:16px 20px 12px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border)}
+.modal-head h3{font-size:18px;font-weight:700}
+.modal-close{width:32px;height:32px;border-radius:50%;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;border:none}
+.modal-body{padding:20px}
+.lot-detail-top{display:flex;gap:14px;align-items:flex-start;margin-bottom:20px}
+.lot-detail-icon{width:64px;height:64px;border-radius:16px;background:var(--primary-light);display:flex;align-items:center;justify-content:center;font-size:32px;flex-shrink:0}
+.lot-detail-info h4{font-size:18px;font-weight:800;margin-bottom:4px}
+.lot-detail-info p{font-size:13px;color:var(--muted);margin-bottom:8px}
+.detail-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
+.detail-item{background:var(--bg);border-radius:10px;padding:12px}
+.detail-item .di-label{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;margin-bottom:4px}
+.detail-item .di-value{font-size:16px;font-weight:800}
+.dur-select{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:20px}
+.dur-btn{padding:10px 4px;border-radius:8px;border:1.5px solid var(--border);background:#fff;font-size:14px;font-weight:600;color:var(--muted);cursor:pointer;transition:all .15s;text-align:center}
+.dur-btn.selected{border-color:var(--primary);background:var(--primary-light);color:var(--primary)}
+.price-summary{background:var(--primary-light);border-radius:12px;padding:16px;margin-bottom:20px}
+.ps-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:14px}
+.ps-row:last-child{margin-bottom:0;padding-top:10px;border-top:1px solid rgba(37,99,235,.2);font-size:16px;font-weight:800}
+.ps-row span:first-child{color:var(--muted)}
+
+/* PIN Display */
+.pin-display{text-align:center;padding:10px 0 20px}
+.pin-box{display:flex;justify-content:center;gap:10px;margin:20px 0}
+.pin-digit{width:52px;height:64px;background:linear-gradient(135deg,#1e3a8a,#2563eb);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:800;color:#fff}
+.pin-note{font-size:13px;color:var(--muted);line-height:1.6;background:var(--bg);border-radius:10px;padding:12px;text-align:left;margin-top:12px}
+.pin-note strong{color:var(--text)}
+.pin-timer{font-size:14px;font-weight:700;color:var(--orange);margin-top:8px}
+
+/* Slot grid in modal */
+.slot-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:20px}
+.slot-box{aspect-ratio:1;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;border:1.5px solid transparent}
+.slot-box.vacant{background:var(--green-light);color:#065f46;border-color:#a7f3d0}
+.slot-box.occupied{background:var(--red-light);color:#991b1b;cursor:not-allowed}
+.slot-box.selected{background:var(--primary);color:#fff;border-color:var(--primary-dark)}
+
+/* Navigate btn */
+.navigate-big{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px;background:linear-gradient(135deg,#059669,#10b981);color:#fff;border-radius:12px;font-size:16px;font-weight:700;border:none;cursor:pointer;margin-bottom:10px}
+
+/* ══════════════════════════════════════
+   MY BOOKINGS SCREEN
+══════════════════════════════════════ */
+#screen-bookings{background:var(--bg);padding-bottom:80px}
+.screen-header{background:var(--primary);padding:20px 20px 20px;color:#fff}
+.screen-header h2{font-size:20px;font-weight:800}
+.screen-header p{font-size:13px;opacity:.75;margin-top:2px}
+.booking-card{background:var(--card);border-radius:var(--radius);padding:16px;margin:0 16px 10px;box-shadow:var(--shadow)}
+.bc-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
+.bc-name{font-size:15px;font-weight:700}
+.bc-date{font-size:12px;color:var(--muted);margin-top:2px}
+.bc-body{background:var(--bg);border-radius:8px;padding:10px;margin-bottom:10px;font-size:13px;display:flex;gap:20px}
+.bc-info span{color:var(--muted);font-size:12px;display:block;margin-bottom:2px}
+.bc-info strong{font-size:14px;font-weight:700}
+.bc-actions{display:flex;gap:8px}
+
+/* ══════════════════════════════════════
+   PROFILE SCREEN
+══════════════════════════════════════ */
+#screen-profile{background:var(--bg);padding-bottom:80px}
+.profile-hero{background:linear-gradient(135deg,#1e3a8a,#2563eb);padding:40px 20px 30px;color:#fff;text-align:center}
+.profile-avatar{width:72px;height:72px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:800;margin:0 auto 12px;border:3px solid rgba(255,255,255,.4)}
+.profile-hero h3{font-size:20px;font-weight:800}
+.profile-hero p{font-size:13px;opacity:.75;margin-top:4px}
+.menu-list{padding:16px}
+.menu-item{background:#fff;border-radius:12px;padding:16px;display:flex;align-items:center;gap:14px;margin-bottom:8px;cursor:pointer;box-shadow:0 1px 6px rgba(0,0,0,.05)}
+.menu-item:active{background:#f8fafc}
+.menu-icon{width:40px;height:40px;border-radius:10px;background:var(--primary-light);display:flex;align-items:center;justify-content:center;font-size:18px}
+.menu-label{flex:1;font-size:15px;font-weight:600}
+.menu-arrow{color:#94a3b8;font-size:18px}
+.menu-item.danger .menu-icon{background:var(--red-light)}
+.menu-item.danger .menu-label{color:var(--red)}
+
+/* ══════════════════════════════════════
+   LANDLORD DASHBOARD
+══════════════════════════════════════ */
+#screen-landlord{background:var(--bg);padding-bottom:80px}
+.landlord-header{background:linear-gradient(135deg,#064e3b,#065f46);padding:20px;color:#fff}
+.landlord-header h2{font-size:20px;font-weight:800}
+.landlord-header p{font-size:13px;opacity:.75;margin-top:2px}
+.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding:16px}
+.stat-card{background:var(--card);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow)}
+.stat-card .sc-label{font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.stat-card .sc-value{font-size:26px;font-weight:800}
+.stat-card .sc-sub{font-size:12px;color:var(--muted);margin-top:3px}
+.stat-card.green .sc-value{color:var(--green)}
+.stat-card.blue .sc-value{color:var(--primary)}
+.stat-card.orange .sc-value{color:var(--orange)}
+.stat-card.red .sc-value{color:var(--red)}
+.add-lot-form{margin:0 16px 16px;background:var(--card);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow)}
+.add-lot-form h4{font-size:16px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.my-lots{padding:0 16px}
+.my-lots h4{font-size:16px;font-weight:700;margin-bottom:12px}
+.my-lot-row{background:#fff;border-radius:12px;padding:14px;margin-bottom:8px;box-shadow:0 1px 6px rgba(0,0,0,.06)}
+.mlr-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.mlr-name{font-size:15px;font-weight:700}
+.mlr-meta{display:flex;gap:8px;flex-wrap:wrap}
+.mlr-stat{font-size:12px;background:var(--bg);padding:4px 8px;border-radius:6px;color:var(--muted)}
+.mlr-actions{display:flex;gap:6px;margin-top:10px}
+
+/* ══════════════════════════════════════
+   LANDLORD BOTTOM NAV
+══════════════════════════════════════ */
+.landlord-nav{background:#065f46}
+.landlord-nav .nav-item.active{color:#34d399}
+
+/* ══════════════════════════════════════
+   NOTIFICATION TOAST
+══════════════════════════════════════ */
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);background:#1e293b;color:#fff;padding:12px 20px;border-radius:12px;font-size:14px;font-weight:600;z-index:999;transition:transform .3s;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.3)}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast.success{background:#065f46}
+.toast.error{background:#991b1b}
+
+/* ══════════════════════════════════════
+   RESPONSIVE DESKTOP
+══════════════════════════════════════ */
+@media(min-width:640px){
+  .hero{padding:80px 40px 60px}
+  .hero-btns{flex-direction:row;max-width:500px}
+  .choose-cards{grid-template-columns:repeat(2,240px);justify-content:center}
+  .features-grid{grid-template-columns:repeat(4,1fr)}
+  #map{height:380px}
+  .lots-list{display:grid;grid-template-columns:repeat(2,1fr)}
+  .stats-grid{grid-template-columns:repeat(4,1fr)}
+  .modal-overlay{align-items:center;padding:20px}
+  .modal-sheet{border-radius:20px;max-width:480px;margin:auto;max-height:80vh}
+  .landlord-header,.screen-header,.top-bar,.auth-header,.profile-hero,.landlord-header{max-width:600px;margin-left:auto;margin-right:auto;border-radius:0}
+  #screen-user,#screen-bookings,#screen-profile,#screen-landlord,#screen-auth{max-width:600px;margin:auto;box-shadow:0 0 40px rgba(0,0,0,.1)}
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════
+     LANDING PAGE
+══════════════════════════════════════ -->
+<div id="screen-landing" class="screen">
+  <div class="hero">
+    <div class="logo-wrap">
+      <div class="logo-icon">P</div>
+      <div class="logo-text">Smart<span>Park</span></div>
+    </div>
+    <h1>Park <em>Smarter,</em><br>Drive Happier</h1>
+    <p>Find, book and navigate to parking spots near you — in seconds. IoT-powered real-time availability.</p>
+    <div class="hero-btns">
+      <button class="btn btn-primary btn-full" onclick="showAuth('user')">Find Parking</button>
+      <button class="btn btn-ghost btn-full" onclick="showAuth('landlord')">List Your Space</button>
+    </div>
+  </div>
+  <div class="stats-row">
+    <div class="stat-item"><div class="stat-num">2.4K+</div><div class="stat-lbl">Parking Spots</div></div>
+    <div class="stat-item"><div class="stat-num">18K+</div><div class="stat-lbl">Happy Drivers</div></div>
+    <div class="stat-item"><div class="stat-num">98%</div><div class="stat-lbl">Uptime</div></div>
+  </div>
+  <div class="features">
+    <h2>Why SmartPark?</h2>
+    <div class="features-grid">
+      <div class="feat-card"><div class="feat-icon">📡</div><div class="feat-title">Live IoT sensors</div><div class="feat-desc">Real-time slot detection via ESP32 ultrasonic sensors</div></div>
+      <div class="feat-card"><div class="feat-icon">🔑</div><div class="feat-title">Unique PIN gate</div><div class="feat-desc">Every booking gets a unique 4-digit PIN to open the gate</div></div>
+      <div class="feat-card"><div class="feat-icon">🗺️</div><div class="feat-title">Navigate to spot</div><div class="feat-desc">One-tap navigation opens Google Maps to the exact lot</div></div>
+      <div class="feat-card"><div class="feat-icon">💸</div><div class="feat-title">Earn with your land</div><div class="feat-desc">Turn unused land into passive income as a parking host</div></div>
+    </div>
+  </div>
+  <div class="how-section">
+    <h2>How it works</h2>
+    <div class="steps-list">
+      <div class="step-item"><div class="step-num">1</div><div class="step-content"><h4>Search nearby</h4><p>Enter your destination — see all available lots with live vacancy count</p></div></div>
+      <div class="step-item"><div class="step-num">2</div><div class="step-content"><h4>Book a slot</h4><p>Select duration, confirm payment. A unique PIN is generated for your visit</p></div></div>
+      <div class="step-item"><div class="step-num">3</div><div class="step-content"><h4>Navigate & park</h4><p>One-tap opens Google Maps to the exact parking lot address</p></div></div>
+      <div class="step-item"><div class="step-num">4</div><div class="step-content"><h4>Enter with PIN</h4><p>Type your unique PIN on the keypad at the gate. It opens automatically!</p></div></div>
+    </div>
+  </div>
+  <div class="choose-section">
+    <h2>I want to…</h2>
+    <div class="choose-cards">
+      <div class="choose-card user-card" onclick="showAuth('user')"><div class="ci">🚗</div><h3>Find Parking</h3><p>Search and book nearby parking spots</p></div>
+      <div class="choose-card owner-card" onclick="showAuth('landlord')"><div class="ci">🏢</div><h3>List My Land</h3><p>Earn money from unused parking space</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     AUTH SCREEN
+══════════════════════════════════════ -->
+<div id="screen-auth" class="screen hidden">
+  <div class="auth-header" id="auth-header">
+    <button class="back-btn" onclick="showScreen('landing')">← Back</button>
+    <h2 id="auth-title">Welcome Back</h2>
+    <p id="auth-subtitle">Sign in to find parking near you</p>
+  </div>
+  <div class="auth-body">
+    <div class="tab-row">
+      <button class="tab-btn active" id="tab-login" onclick="switchTab('login')">Login</button>
+      <button class="tab-btn" id="tab-register" onclick="switchTab('register')">Register</button>
+    </div>
+    <div id="login-form">
+      <div class="field"><label>Email</label><input type="email" id="login-email" placeholder="you@email.com" value="user@smartpark.in"/></div>
+      <div class="field"><label>Password</label><input type="password" id="login-pass" placeholder="••••••••" value="password123"/></div>
+      <button class="btn btn-primary btn-full" style="margin-top:8px" onclick="doLogin()">Sign In</button>
+      <p style="text-align:center;font-size:13px;color:var(--muted);margin-top:16px">Demo: tap Sign In directly to continue</p>
+    </div>
+    <div id="register-form" class="hidden">
+      <div class="field"><label>Full Name</label><input type="text" id="reg-name" placeholder="Arjun Sharma"/></div>
+      <div class="field"><label>Phone</label><input type="tel" id="reg-phone" placeholder="+91 98765 43210"/></div>
+      <div class="field"><label>Email</label><input type="email" id="reg-email" placeholder="you@email.com"/></div>
+      <div class="field"><label>Password</label><input type="password" id="reg-pass" placeholder="Min 8 characters"/></div>
+      <div id="landlord-extra" class="hidden">
+        <div class="field"><label>Business / Land Name</label><input type="text" placeholder="e.g. Ravi Parking Complex"/></div>
+        <div class="field"><label>City</label><input type="text" placeholder="Chennai"/></div>
+      </div>
+      <button class="btn btn-primary btn-full" style="margin-top:8px" onclick="doRegister()">Create Account</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     USER DASHBOARD
+══════════════════════════════════════ -->
+<div id="screen-user" class="screen hidden">
+  <div class="top-bar">
+    <div class="top-bar-head">
+      <div><div style="font-size:12px;opacity:.75">Good morning,</div><h3 id="user-greeting">Arjun 👋</h3></div>
+      <div class="avatar" onclick="showUserScreen('profile')">A</div>
+    </div>
+    <div class="search-box">
+      <span class="si">🔍</span>
+      <input type="text" id="search-input" placeholder="Search location or parking name..." oninput="filterLots()"/>
+    </div>
+  </div>
+  <div id="map"></div>
+  <div class="section-head">
+    <h4>Nearby Parking <span id="lot-count" style="color:var(--muted);font-weight:400;font-size:14px">(5 found)</span></h4>
+    <button onclick="filterLots('all')" style="background:none;border:none;color:var(--primary);font-size:13px;font-weight:600;cursor:pointer">See all</button>
+  </div>
+  <div class="lots-list" id="lots-list"></div>
+</div>
+
+<!-- ══════════════════════════════════════
+     MY BOOKINGS SCREEN
+══════════════════════════════════════ -->
+<div id="screen-bookings" class="screen hidden">
+  <div class="screen-header">
+    <h2>My Bookings</h2>
+    <p>Your parking history and active bookings</p>
+  </div>
+  <div style="padding:16px 0" id="bookings-list"></div>
+</div>
+
+<!-- ══════════════════════════════════════
+     PROFILE SCREEN
+══════════════════════════════════════ -->
+<div id="screen-profile" class="screen hidden">
+  <div class="profile-hero">
+    <div class="profile-avatar" id="profile-avatar">A</div>
+    <h3 id="profile-name">Arjun Sharma</h3>
+    <p id="profile-email">user@smartpark.in</p>
+  </div>
+  <div class="menu-list">
+    <div class="menu-item" onclick="showUserScreen('bookings')"><div class="menu-icon">📋</div><div class="menu-label">My Bookings</div><div class="menu-arrow">›</div></div>
+    <div class="menu-item"><div class="menu-icon">💳</div><div class="menu-label">Payment Methods</div><div class="menu-arrow">›</div></div>
+    <div class="menu-item"><div class="menu-icon">🔔</div><div class="menu-label">Notifications</div><div class="menu-arrow">›</div></div>
+    <div class="menu-item"><div class="menu-icon">🛡️</div><div class="menu-label">Privacy & Security</div><div class="menu-arrow">›</div></div>
+    <div class="menu-item"><div class="menu-icon">❓</div><div class="menu-label">Help & Support</div><div class="menu-arrow">›</div></div>
+    <div class="menu-item danger" onclick="doLogout()"><div class="menu-icon">🚪</div><div class="menu-label">Sign Out</div><div class="menu-arrow">›</div></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     USER BOTTOM NAV
+══════════════════════════════════════ -->
+<div class="bottom-nav hidden" id="user-nav">
+  <button class="nav-item active" id="nav-home" onclick="showUserScreen('home')"><span class="nav-icon">🏠</span>Home</button>
+  <button class="nav-item" id="nav-map-btn" onclick="showUserScreen('home');setTimeout(()=>scrollToMap(),300)"><span class="nav-icon">🗺️</span>Map</button>
+  <button class="nav-item" id="nav-bookings" onclick="showUserScreen('bookings')"><span class="nav-icon">📋</span>Bookings</button>
+  <button class="nav-item" id="nav-profile" onclick="showUserScreen('profile')"><span class="nav-icon">👤</span>Profile</button>
+</div>
+
+<!-- ══════════════════════════════════════
+     LANDLORD DASHBOARD
+══════════════════════════════════════ -->
+<div id="screen-landlord" class="screen hidden">
+  <div class="landlord-header">
+    <h2>Owner Dashboard</h2>
+    <p id="landlord-greeting">Welcome, Ravi!</p>
+  </div>
+  <div class="stats-grid">
+    <div class="stat-card green"><div class="sc-label">Today's Earnings</div><div class="sc-value">₹2,840</div><div class="sc-sub">+12% vs yesterday</div></div>
+    <div class="stat-card blue"><div class="sc-label">Active Bookings</div><div class="sc-value">7</div><div class="sc-sub">Right now</div></div>
+    <div class="stat-card orange"><div class="sc-label">Occupancy</div><div class="sc-value">68%</div><div class="sc-sub">Across all lots</div></div>
+    <div class="stat-card red"><div class="sc-label">Monthly Revenue</div><div class="sc-value">₹41K</div><div class="sc-sub">This month</div></div>
+  </div>
+
+  <div class="add-lot-form">
+    <h4>➕ Add New Parking Lot</h4>
+    <div class="field"><label>Lot Name</label><input type="text" id="lot-name" placeholder="e.g. Ravi's Parking — T Nagar"/></div>
+    <div class="field"><label>Full Address</label><input type="text" id="lot-address" placeholder="Street, Area, City, Pincode"/></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="field"><label>Total Slots</label><input type="number" id="lot-slots" placeholder="10" min="1"/></div>
+      <div class="field"><label>Rate (₹/hr)</label><input type="number" id="lot-rate" placeholder="40" min="1"/></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="field"><label>Open Time</label><input type="time" id="lot-open" value="06:00"/></div>
+      <div class="field"><label>Close Time</label><input type="time" id="lot-close" value="22:00"/></div>
+    </div>
+    <div class="field"><label>ESP32 Device ID</label><input type="text" id="lot-device" placeholder="SP-XXXX (from your IoT device)"/></div>
+    <button class="btn btn-green btn-full" onclick="addLot()">Register Lot & Connect IoT</button>
+  </div>
+
+  <div class="my-lots">
+    <h4>My Parking Lots</h4>
+    <div id="my-lots-list"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     LANDLORD BOTTOM NAV
+══════════════════════════════════════ -->
+<div class="bottom-nav landlord-nav hidden" id="landlord-nav">
+  <button class="nav-item active" onclick=""><span class="nav-icon">📊</span>Dashboard</button>
+  <button class="nav-item"><span class="nav-icon">🅿️</span>My Lots</button>
+  <button class="nav-item"><span class="nav-icon">📋</span>Bookings</button>
+  <button class="nav-item" onclick="doLogout()"><span class="nav-icon">🚪</span>Logout</button>
+</div>
+
+<!-- ══════════════════════════════════════
+     BOOKING MODAL
+══════════════════════════════════════ -->
+<div class="modal-overlay hidden" id="modal-booking">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-head">
+      <h3 id="modal-lot-name">Parking Details</h3>
+      <button class="modal-close" onclick="closeModal('booking')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="lot-detail-top">
+        <div class="lot-detail-icon" id="modal-lot-icon">🅿️</div>
+        <div class="lot-detail-info">
+          <h4 id="modal-lot-name2">SmartPark Central</h4>
+          <p id="modal-lot-addr">📍 Anna Salai, Chennai</p>
+          <span class="badge badge-green" id="modal-lot-avail">6 slots free</span>
+        </div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-item"><div class="di-label">Rate</div><div class="di-value" id="modal-rate">₹40/hr</div></div>
+        <div class="detail-item"><div class="di-label">Open</div><div class="di-value">6am – 10pm</div></div>
+        <div class="detail-item"><div class="di-label">Distance</div><div class="di-value" id="modal-dist">1.2 km</div></div>
+        <div class="detail-item"><div class="di-label">Slot</div><div class="di-value" id="modal-slot-num">—</div></div>
+      </div>
+      <div style="font-size:14px;font-weight:700;margin-bottom:10px">Select a Slot</div>
+      <div class="slot-grid" id="slot-grid"></div>
+      <div style="font-size:14px;font-weight:700;margin-bottom:10px">Duration</div>
+      <div class="dur-select" id="dur-select">
+        <button class="dur-btn selected" data-h="1" onclick="selectDur(this)">1 hr</button>
+        <button class="dur-btn" data-h="2" onclick="selectDur(this)">2 hr</button>
+        <button class="dur-btn" data-h="3" onclick="selectDur(this)">3 hr</button>
+        <button class="dur-btn" data-h="4" onclick="selectDur(this)">4 hr</button>
+      </div>
+      <div class="price-summary">
+        <div class="ps-row"><span>Parking fee</span><span id="ps-base">₹40</span></div>
+        <div class="ps-row"><span>Service fee</span><span>₹10</span></div>
+        <div class="ps-row"><span>Total</span><span id="ps-total" style="color:var(--primary)">₹50</span></div>
+      </div>
+      <button class="navigate-big" onclick="navigateToLot()">🗺️ Navigate to Parking</button>
+      <button class="btn btn-primary btn-full" onclick="confirmBooking()">Confirm & Pay ₹<span id="pay-amount">50</span></button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     PIN MODAL
+══════════════════════════════════════ -->
+<div class="modal-overlay hidden" id="modal-pin">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-head">
+      <h3>Booking Confirmed! 🎉</h3>
+      <button class="modal-close" onclick="closeModal('pin');showUserScreen('bookings')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="pin-display">
+        <p style="font-size:15px;color:var(--muted);margin-bottom:4px">Your gate entry PIN</p>
+        <p style="font-size:13px;color:var(--muted)">Type this on the keypad at the gate</p>
+        <div class="pin-box" id="pin-box">
+          <div class="pin-digit" id="pd1">—</div>
+          <div class="pin-digit" id="pd2">—</div>
+          <div class="pin-digit" id="pd3">—</div>
+          <div class="pin-digit" id="pd4">—</div>
+        </div>
+        <div class="pin-timer" id="pin-timer">Valid for 30:00</div>
+        <div class="pin-note">
+          <strong>How to use:</strong><br>
+          1. Drive to <span id="pin-lot-name">the lot</span><br>
+          2. Type your 4-digit PIN on the keypad at the gate<br>
+          3. Press <strong>#</strong> to confirm — gate opens automatically<br>
+          4. Park in Slot <strong id="pin-slot">A3</strong><br>
+          5. Press <strong>*</strong> to clear if you make a mistake
+        </div>
+      </div>
+      <button class="navigate-big" onclick="navigateToLot()">🗺️ Navigate Now</button>
+      <button class="btn btn-outline btn-full" onclick="closeModal('pin');showUserScreen('bookings')">View My Bookings</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// ══════════════════════════════════════
+//  DATA
+// ══════════════════════════════════════
+const LOTS = [
+  {id:'L1',name:'SmartPark Anna Salai',address:'47, Anna Salai, Chennai - 600002',lat:13.0604,lng:80.2496,total:8,vacant:3,rate:50,dist:'0.8 km',icon:'🏬',open:'6:00 AM',close:'10:00 PM',deviceId:'SP-0001'},
+  {id:'L2',name:'T Nagar Smart Lot',address:'23, Usman Road, T Nagar, Chennai - 600017',lat:13.0418,lng:80.2341,total:12,vacant:7,rate:40,dist:'1.4 km',icon:'🅿️',open:'5:00 AM',close:'11:00 PM',deviceId:'SP-0002'},
+  {id:'L3',name:'Vadapalani Park',address:'MGR Salai, Vadapalani, Chennai - 600026',lat:13.0524,lng:80.2120,total:6,vacant:0,rate:30,dist:'2.1 km',icon:'🚗',open:'6:00 AM',close:'9:00 PM',deviceId:'SP-0003'},
+  {id:'L4',name:'Adyar Parking Hub',address:'5th Main Road, Adyar, Chennai - 600020',lat:13.0012,lng:80.2565,total:10,vacant:8,rate:35,dist:'3.2 km',icon:'🏢',open:'24 hours',close:'',deviceId:'SP-0004'},
+  {id:'L5',name:'Tambaram AutoPark',address:'GST Road, Tambaram, Chennai - 600045',lat:12.9249,lng:80.1000,total:20,vacant:15,rate:25,dist:'5.6 km',icon:'🚘',open:'6:00 AM',close:'10:00 PM',deviceId:'SP-0005'},
+];
+
+const OWNER_LOTS = [
+  {id:'OL1',name:'Ravi Parking — Ambattur',address:'Ambattur Industrial Estate, Chennai',slots:10,vacant:4,rate:30,monthly:'₹28,000'},
+  {id:'OL2',name:'Ravi Parking — Redhills',address:'Red Hills Main Road, Chennai',slots:6,vacant:2,rate:25,monthly:'₹13,500'},
+];
+
+let currentUser = null;
+let currentMode = 'user';
+let selectedLot = null;
+let selectedSlot = null;
+let selectedHours = 1;
+let pinTimer = null;
+let map = null;
+let markers = [];
+
+const bookings = [
+  {id:'BK001',lot:'SmartPark Anna Salai',address:'47, Anna Salai, Chennai',slot:'A3',date:'Today, 10:30 AM',duration:'2 hrs',amount:'₹110',pin:'7284',status:'active',lat:13.0604,lng:80.2496},
+  {id:'BK002',lot:'T Nagar Smart Lot',address:'23, Usman Road, T Nagar',slot:'B1',date:'Yesterday, 3:00 PM',duration:'1 hr',amount:'₹50',pin:'4519',status:'completed',lat:13.0418,lng:80.2341},
+];
+
+// ══════════════════════════════════════
+//  SCREEN NAVIGATION
+// ══════════════════════════════════════
+function showScreen(name) {
+  ['landing','auth','user','bookings','profile','landlord'].forEach(s => {
+    const el = document.getElementById('screen-'+s);
+    if(el) el.classList.add('hidden');
+  });
+  document.getElementById('screen-'+name)?.classList.remove('hidden');
+  document.getElementById('user-nav')?.classList.add('hidden');
+  document.getElementById('landlord-nav')?.classList.add('hidden');
+
+  if(['user','bookings','profile'].includes(name)){
+    document.getElementById('user-nav')?.classList.remove('hidden');
+  }
+  if(name === 'landlord'){
+    document.getElementById('landlord-nav')?.classList.remove('hidden');
+  }
+  if(name === 'user' && !map){
+    setTimeout(initMap, 200);
+  }
+}
+
+function showUserScreen(name) {
+  const screens = {home:'user', bookings:'bookings', profile:'profile'};
+  showScreen(screens[name] || name);
+  document.querySelectorAll('#user-nav .nav-item').forEach(b => b.classList.remove('active'));
+  const navMap = {home:'nav-home', bookings:'nav-bookings', profile:'nav-profile'};
+  const target = document.getElementById(navMap[name]);
+  if(target) target.classList.add('active');
+
+  if(name === 'bookings') renderBookings();
+}
+
+function scrollToMap(){ document.getElementById('map')?.scrollIntoView({behavior:'smooth'}); }
+
+// ══════════════════════════════════════
+//  AUTH
+// ══════════════════════════════════════
+function showAuth(mode) {
+  currentMode = mode;
+  const header = document.getElementById('auth-header');
+  const title = document.getElementById('auth-title');
+  const sub = document.getElementById('auth-subtitle');
+  const extra = document.getElementById('landlord-extra');
+  if(mode === 'landlord'){
+    header.classList.add('owner-mode');
+    title.textContent = 'Owner Portal';
+    sub.textContent = 'List your land, earn daily income';
+    extra.classList.remove('hidden');
+  } else {
+    header.classList.remove('owner-mode');
+    title.textContent = 'Welcome Back';
+    sub.textContent = 'Sign in to find parking near you';
+    extra.classList.add('hidden');
+  }
+  showScreen('auth');
+}
+
+function switchTab(tab) {
+  document.getElementById('login-form').classList.toggle('hidden', tab !== 'login');
+  document.getElementById('register-form').classList.toggle('hidden', tab !== 'register');
+  document.getElementById('tab-login').classList.toggle('active', tab === 'login');
+  document.getElementById('tab-register').classList.toggle('active', tab !== 'login');
+}
+
+function doLogin() {
+  currentUser = {name:'Arjun Sharma', email:'user@smartpark.in', initials:'AS'};
+  if(currentMode === 'landlord'){
+    currentUser = {name:'Ravi Kumar', email:'ravi@parking.in', initials:'RK'};
+    showScreen('landlord');
+    renderOwnerLots();
+  } else {
+    document.getElementById('user-greeting').textContent = 'Arjun 👋';
+    renderLots(LOTS);
+    showScreen('user');
+    setTimeout(initMap, 300);
+  }
+  toast('Logged in successfully!', 'success');
+}
+
+function doRegister() {
+  const name = document.getElementById('reg-name').value || 'User';
+  currentUser = {name, initials: name.charAt(0).toUpperCase()};
+  doLogin();
+}
+
+function doLogout() {
+  currentUser = null;
+  showScreen('landing');
+  toast('Logged out');
+}
+
+// ══════════════════════════════════════
+//  MAP
+// ══════════════════════════════════════
+function initMap() {
+  if(map) return;
+  map = L.map('map',{zoomControl:false}).setView([13.0604, 80.2496], 13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(map);
+  L.control.zoom({position:'topright'}).addTo(map);
+
+  const userIcon = L.divIcon({html:'<div style="background:#2563eb;width:14px;height:14px;border-radius:50%;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,.3)"></div>',iconSize:[14,14],className:''});
+  L.marker([13.0604, 80.2496], {icon: userIcon}).addTo(map).bindPopup('You are here');
+
+  LOTS.forEach(lot => addMapMarker(lot));
+}
+
+function addMapMarker(lot) {
+  const color = lot.vacant === 0 ? '#ef4444' : lot.vacant <= 2 ? '#f59e0b' : '#10b981';
+  const icon = L.divIcon({
+    html:`<div style="background:${color};color:white;border-radius:20px;padding:4px 8px;font-size:11px;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.3);white-space:nowrap;border:2px solid white">${lot.vacant > 0 ? lot.vacant+' free' : 'FULL'}</div>`,
+    className:'',iconAnchor:[30,14]
+  });
+  const m = L.marker([lot.lat, lot.lng], {icon}).addTo(map);
+  m.on('click', () => openBookingModal(lot));
+  markers.push({id:lot.id, marker:m});
+}
+
+// ══════════════════════════════════════
+//  LOTS LIST
+// ══════════════════════════════════════
+function renderLots(lots) {
+  const container = document.getElementById('lots-list');
+  document.getElementById('lot-count').textContent = `(${lots.length} found)`;
+  container.innerHTML = lots.map(lot => `
+    <div class="lot-card" onclick="openBookingModal(getLot('${lot.id}'))">
+      <div class="lot-icon">${lot.icon}</div>
+      <div class="lot-info">
+        <div class="lot-name">${lot.name}</div>
+        <div class="lot-address">📍 ${lot.address}</div>
+        <div class="lot-meta">
+          <span class="lot-price">₹${lot.rate}/hr</span>
+          <span class="lot-avail ${lot.vacant === 0 ? 'full' : ''}">${lot.vacant === 0 ? '● FULL' : '● '+lot.vacant+' vacant'}</span>
+          <span class="lot-dist">📏 ${lot.dist}</span>
+        </div>
+      </div>
+      <span style="color:var(--primary);font-size:20px;align-self:center">›</span>
+    </div>
+  `).join('');
+}
+
+function getLot(id){ return LOTS.find(l => l.id === id); }
+
+function filterLots() {
+  const q = document.getElementById('search-input').value.toLowerCase();
+  const filtered = q ? LOTS.filter(l => l.name.toLowerCase().includes(q) || l.address.toLowerCase().includes(q)) : LOTS;
+  renderLots(filtered);
+}
+
+// ══════════════════════════════════════
+//  BOOKING MODAL
+// ══════════════════════════════════════
+function openBookingModal(lot) {
+  if(!lot) return;
+  selectedLot = lot;
+  selectedSlot = null;
+  selectedHours = 1;
+
+  document.getElementById('modal-lot-name').textContent = lot.name;
+  document.getElementById('modal-lot-name2').textContent = lot.name;
+  document.getElementById('modal-lot-addr').textContent = '📍 ' + lot.address;
+  document.getElementById('modal-lot-icon').textContent = lot.icon;
+  document.getElementById('modal-rate').textContent = '₹'+lot.rate+'/hr';
+  document.getElementById('modal-dist').textContent = lot.dist;
+  document.getElementById('modal-slot-num').textContent = '—';
+
+  const avail = lot.vacant === 0 ? 'FULL' : lot.vacant + ' slots free';
+  const badge = document.getElementById('modal-lot-avail');
+  badge.textContent = avail;
+  badge.className = 'badge ' + (lot.vacant === 0 ? 'badge-red' : 'badge-green');
+
+  // Build slot grid
+  const grid = document.getElementById('slot-grid');
+  const rows = ['A','B','C'];
+  const slotsPerRow = Math.ceil(lot.total / 3);
+  let html = '';
+  let occupied = lot.total - lot.vacant;
+  let idx = 0;
+  rows.forEach(row => {
+    for(let i=1;i<=slotsPerRow&&idx<lot.total;i++,idx++){
+      const isOcc = idx < occupied;
+      const name = row+i;
+      html += `<div class="slot-box ${isOcc?'occupied':'vacant'}" data-slot="${name}" ${!isOcc?'onclick="selectSlot(this)"':''}>${name}</div>`;
+    }
+  });
+  grid.innerHTML = html;
+
+  // Duration buttons
+  document.querySelectorAll('.dur-btn').forEach(b => b.classList.remove('selected'));
+  document.querySelector('.dur-btn').classList.add('selected');
+  updatePrice();
+
+  document.getElementById('modal-booking').classList.remove('hidden');
+}
+
+function selectSlot(el) {
+  document.querySelectorAll('.slot-box.vacant,.slot-box.selected').forEach(b => {
+    b.classList.remove('selected');
+    if(!b.classList.contains('occupied')) b.classList.add('vacant');
+  });
+  el.classList.remove('vacant');
+  el.classList.add('selected');
+  selectedSlot = el.dataset.slot;
+  document.getElementById('modal-slot-num').textContent = selectedSlot;
+}
+
+function selectDur(btn) {
+  document.querySelectorAll('.dur-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  selectedHours = parseInt(btn.dataset.h);
+  updatePrice();
+}
+
+function updatePrice() {
+  if(!selectedLot) return;
+  const base = selectedLot.rate * selectedHours;
+  const service = 10;
+  const total = base + service;
+  document.getElementById('ps-base').textContent = '₹'+base;
+  document.getElementById('ps-total').textContent = '₹'+total;
+  document.getElementById('pay-amount').textContent = total;
+}
+
+function navigateToLot() {
+  if(!selectedLot) return;
+  const url = `https://www.google.com/maps/dir/?api=1&destination=${selectedLot.lat},${selectedLot.lng}`;
+  window.open(url, '_blank');
+}
+
+async function confirmBooking() {
+  if(!selectedSlot){ toast('Please select a parking slot', 'error'); return; }
+  if(!selectedLot) return;
+  closeModal('booking');
+
+  // Generate random 4-digit PIN
+  const pin = String(Math.floor(1000 + Math.random() * 9000));
+  const bookingId = 'BK' + Date.now();
+
+  // Send PIN to server so ESP32 keypad can use it
+  try {
+    await fetch("https://smartpark-server-yczi.onrender.com/api/booking", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        device: "SP-0001",
+        pin: pin,
+        booking_id: bookingId
+      })
+    });
+    showPIN(pin, selectedLot, selectedSlot, selectedHours);
+    toast('Booking confirmed! Gate PIN sent.', 'success');
+  } catch(e) {
+    showPIN(pin, selectedLot, selectedSlot, selectedHours);
+    toast('PIN generated but could not reach gate server!', 'error');
+  }
+}
+
+function showPIN(pin, lot, slot, hours) {
+  document.getElementById('pd1').textContent = pin[0];
+  document.getElementById('pd2').textContent = pin[1];
+  document.getElementById('pd3').textContent = pin[2];
+  document.getElementById('pd4').textContent = pin[3];
+  document.getElementById('pin-lot-name').textContent = lot.name;
+  document.getElementById('pin-slot').textContent = slot;
+  document.getElementById('modal-pin').classList.remove('hidden');
+
+  // Add to bookings
+  const booking = {
+    id:'BK'+Date.now(),lot:lot.name,address:lot.address,
+    slot,date:'Just now',duration:hours+' hr'+(hours>1?'s':''),
+    amount:'₹'+(lot.rate*hours+10),pin,status:'active',lat:lot.lat,lng:lot.lng
+  };
+  bookings.unshift(booking);
+
+  // Countdown timer (30 min)
+  let secs = 30*60;
+  if(pinTimer) clearInterval(pinTimer);
+  pinTimer = setInterval(() => {
+    secs--;
+    if(secs <= 0){ clearInterval(pinTimer); return; }
+    const m = Math.floor(secs/60), s = secs%60;
+    document.getElementById('pin-timer').textContent = `Valid for ${m}:${s.toString().padStart(2,'0')}`;
+  }, 1000);
+}
+
+// ══════════════════════════════════════
+//  BOOKINGS
+// ══════════════════════════════════════
+function renderBookings() {
+  const container = document.getElementById('bookings-list');
+  if(!bookings.length){ container.innerHTML = '<p style="text-align:center;color:var(--muted);padding:40px">No bookings yet</p>'; return; }
+  container.innerHTML = bookings.map(b => `
+    <div class="booking-card">
+      <div class="bc-top">
+        <div><div class="bc-name">${b.lot}</div><div class="bc-date">📅 ${b.date}</div></div>
+        <span class="badge ${b.status==='active'?'badge-green':'badge-blue'}">${b.status==='active'?'Active':'Done'}</span>
+      </div>
+      <div class="bc-body">
+        <div class="bc-info"><span>Slot</span><strong>${b.slot}</strong></div>
+        <div class="bc-info"><span>Duration</span><strong>${b.duration}</strong></div>
+        <div class="bc-info"><span>Paid</span><strong>${b.amount}</strong></div>
+        <div class="bc-info"><span>PIN</span><strong style="color:var(--primary)">${b.status==='active'?b.pin:'••••'}</strong></div>
+      </div>
+      <div class="bc-actions">
+        <button class="btn btn-outline btn-sm" onclick="openMapNav(${b.lat},${b.lng})">🗺️ Navigate</button>
+        ${b.status==='active'?`<button class="btn btn-sm" style="background:var(--orange-light);color:#92400e" onclick="showPINAgain('${b.pin}')">🔑 Show PIN</button>`:''}
+      </div>
+    </div>
+  `).join('');
+}
+
+function openMapNav(lat, lng) {
+  window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, '_blank');
+}
+
+function showPINAgain(pin) {
+  const b = bookings.find(bk => bk.pin === pin);
+  if(b){ selectedLot = LOTS.find(l=>l.name===b.lot)||{lat:b.lat,lng:b.lng,name:b.lot}; showPIN(pin,selectedLot,b.slot,1); }
+}
+
+// ══════════════════════════════════════
+//  OWNER / LANDLORD
+// ══════════════════════════════════════
+function renderOwnerLots() {
+  const container = document.getElementById('my-lots-list');
+  container.innerHTML = OWNER_LOTS.map(l => `
+    <div class="my-lot-row">
+      <div class="mlr-top">
+        <div class="mlr-name">${l.name}</div>
+        <span class="badge badge-green">Active</span>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px">📍 ${l.address}</div>
+      <div class="mlr-meta">
+        <span class="mlr-stat">🅿️ ${l.slots} slots</span>
+        <span class="mlr-stat">🟢 ${l.vacant} vacant</span>
+        <span class="mlr-stat">₹${l.rate}/hr</span>
+        <span class="mlr-stat">📈 ${l.monthly}/mo</span>
+      </div>
+      <div class="mlr-actions">
+        <button class="btn btn-outline btn-sm">⚙️ Manage</button>
+        <button class="btn btn-sm" style="background:var(--green-light);color:#065f46">📊 Analytics</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function addLot() {
+  const name = document.getElementById('lot-name').value;
+  const addr = document.getElementById('lot-address').value;
+  const slots = document.getElementById('lot-slots').value;
+  const rate = document.getElementById('lot-rate').value;
+  const device = document.getElementById('lot-device').value;
+  if(!name||!addr||!slots||!rate){ toast('Please fill all required fields','error'); return; }
+  OWNER_LOTS.unshift({id:'OL'+Date.now(),name,address:addr,slots:parseInt(slots),vacant:parseInt(slots),rate:parseInt(rate),monthly:'₹0 (new)'});
+  renderOwnerLots();
+  document.getElementById('lot-name').value='';
+  document.getElementById('lot-address').value='';
+  document.getElementById('lot-slots').value='';
+  document.getElementById('lot-rate').value='';
+  document.getElementById('lot-device').value='';
+  toast('Lot registered! IoT device '+(device||'(none)')+ ' linked.','success');
+}
+
+// ══════════════════════════════════════
+//  MODAL HELPERS
+// ══════════════════════════════════════
+function closeModal(name) {
+  document.getElementById('modal-'+name)?.classList.add('hidden');
+}
+
+// Close modals on overlay click
+document.querySelectorAll('.modal-overlay').forEach(o => {
+  o.addEventListener('click', e => { if(e.target === o) o.classList.add('hidden'); });
+});
+
+// ══════════════════════════════════════
+//  TOAST
+// ══════════════════════════════════════
+function toast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (type ? ' '+type : '');
+  setTimeout(() => t.className = 'toast', 2800);
+}
+
+// Init
+showScreen('landing');
+</script>
+</body>
+</html>
