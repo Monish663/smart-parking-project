@@ -1,3 +1,7 @@
 Downloaded from https://wokwi.com/projects/461038790913872897
 
 Simulate this project on https://wokwi.com
+
+
+
+if for public sesor use render    https://dashboard.render.com/web/srv-d7dlaot7vvec73es8udg/deploys/dep-d7drvt58nd3s73e01isg?r=2026-04-12%4015%3A52%3A25%7E2026-04-12%4015%3A57%3A07
